@@ -86,7 +86,7 @@ class HTTPClient(object):
         buffer = bytearray()
         done = False
         while not done:
-            part = sock.recv(7000)
+            part = sock.recv(1024)
             if (part):
                 buffer.extend(part)
             else:
