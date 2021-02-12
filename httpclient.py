@@ -22,8 +22,7 @@ import sys
 import socket
 import re
 # you may use urllib to encode data appropriately
-import urllib.parse
-
+from urllib.parse import urlparse, urlencode
 def help():
     print("httpclient.py [GET/POST] [URL]\n")
 
@@ -33,7 +32,27 @@ class HTTPResponse(object):
         self.body = body
 
 class HTTPClient(object):
-    #def get_host_port(self,url):
+    def get_host_port(self,url):
+
+        host, port = "", 80
+
+        url_parse = urlparse(url)
+        
+
+        host = url_parse.hostname
+        
+        try:
+            host_ip = socket.gethostbyname( host )
+        except socket.gaierror:
+            print ('Hostname could not be resolved. Exiting')
+            sys.exit()
+
+        #print (f'Ip address of {host} is {host_ip}')
+     
+        if url_parse.port != None:
+            port = url_parse.port
+
+        return host_ip, port
 
     def connect(self, host, port):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -41,13 +60,20 @@ class HTTPClient(object):
         return None
 
     def get_code(self, data):
-        return None
+        data = data.split("\r\n")
+        data = data[0].split(" ")
+        code = data[1]
+        print(int(code))
+        return int(code)
 
     def get_headers(self,data):
         return None
 
     def get_body(self, data):
-        return None
+        data = data.split("\r\n\r\n",1)
+        body = data[-1]
+        print(body)
+        return body
     
     def sendall(self, data):
         self.socket.sendall(data.encode('utf-8'))
@@ -60,7 +86,7 @@ class HTTPClient(object):
         buffer = bytearray()
         done = False
         while not done:
-            part = sock.recv(1024)
+            part = sock.recv(7000)
             if (part):
                 buffer.extend(part)
             else:
@@ -70,11 +96,99 @@ class HTTPClient(object):
     def GET(self, url, args=None):
         code = 500
         body = ""
+        host, port = self.get_host_port(url)
+        parsed = urlparse(url)
+        path = parsed.path
+        parsed = parsed.hostname
+      
+
+        if path == "":
+            path = "/"
+        else:
+            pass
+        print(f'this is path: {path}')
+
+        HTTP_version = "HTTP/1.1"
+        #Request-line
+        request_line = f"GET {path} {HTTP_version}\r\nHost: {parsed}\r\nConnection: close\r\n\r\n "
+        print(request_line)
+        #construct data
+        payload = request_line
+     
+        #connect to socket 
+        self.connect(host, port)
+
+        #send request to server 
+        self.sendall(payload)
+
+
+
+        #get data
+        data = self.recvall(self.socket)
+
+        
+
+        #close connection
+        self.close()
+
+   
+        
+
+
+        #get code, headers, and body
+        code = self.get_code(data)
+        # headers = self.get_headers(data)
+        body = self.get_body(data)
+
+
+
+
         return HTTPResponse(code, body)
 
     def POST(self, url, args=None):
         code = 500
         body = ""
+        host, port = self.get_host_port(url)
+        parsed = urlparse(url)
+        path = parsed.path
+        parsed = parsed.hostname
+
+        if args == None:
+            args = ''
+       
+        args = urlencode(args)
+        content_length = len(args)
+
+        if path == "":
+             path = "/"
+        else:
+            pass
+        
+       
+        HTTP_version = "HTTP/1.1"
+        # #Request-line
+        post_request =  f"POST {path} {HTTP_version}\r\nHost: {parsed}\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: {content_length}\r\nConnection: close \r\n\r\n{args}\r\n\r\n"
+
+        # #connect to socket 
+        self.connect(host, port)
+
+        # #send request to server 
+        self.sendall(post_request)
+
+        # #get data
+        data = self.recvall(self.socket)
+
+        # #close connection
+        self.close()
+
+        # #get code, headers, and body
+        code = self.get_code(data)
+        # # headers = self.get_headers(data)
+        body = self.get_body(data)
+       
+        #http://127.0.0.1:27627/abcdef/gjkd/dsadas
+   
+        
         return HTTPResponse(code, body)
 
     def command(self, url, command="GET", args=None):
