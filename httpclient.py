@@ -33,22 +33,20 @@ class HTTPResponse(object):
 
 class HTTPClient(object):
     def get_host_port(self,url):
+        hostname, port = "", 80
 
-        host, port = "", 80
-
+        #parse url and get hostname
         url_parse = urlparse(url)
+        hostname = url_parse.hostname
         
-
-        host = url_parse.hostname
-        
+        #get ip address with host name
         try:
-            host_ip = socket.gethostbyname( host )
+            host_ip = socket.gethostbyname( hostname )
         except socket.gaierror:
             print ('Hostname could not be resolved. Exiting')
             sys.exit()
-
-        #print (f'Ip address of {host} is {host_ip}')
      
+        #if port is not empty assign port
         if url_parse.port != None:
             port = url_parse.port
 
@@ -67,7 +65,9 @@ class HTTPClient(object):
         return int(code)
 
     def get_headers(self,data):
-        return None
+        data = data.split("\r\n")
+        header = data[1:len(data)-2]
+        return header
 
     def get_body(self, data):
         data = data.split("\r\n\r\n",1)
@@ -101,17 +101,15 @@ class HTTPClient(object):
         path = parsed.path
         parsed = parsed.hostname
       
-
         if path == "":
             path = "/"
         else:
             pass
-        print(f'this is path: {path}')
 
         HTTP_version = "HTTP/1.1"
         #Request-line
         request_line = f"GET {path} {HTTP_version}\r\nHost: {parsed}\r\nConnection: close\r\n\r\n "
-        print(request_line)
+     
         #construct data
         payload = request_line
      
@@ -121,27 +119,18 @@ class HTTPClient(object):
         #send request to server 
         self.sendall(payload)
 
-
-
         #get data
         data = self.recvall(self.socket)
-
-        
 
         #close connection
         self.close()
 
-   
-        
-
-
         #get code, headers, and body
         code = self.get_code(data)
-        # headers = self.get_headers(data)
+        headers = self.get_headers(data)
+        for header in headers:
+            print(header)
         body = self.get_body(data)
-
-
-
 
         return HTTPResponse(code, body)
 
@@ -183,11 +172,11 @@ class HTTPClient(object):
 
         # #get code, headers, and body
         code = self.get_code(data)
-        # # headers = self.get_headers(data)
+        headers = self.get_headers(data)
+        for header in headers:
+            print(header)
         body = self.get_body(data)
-       
-        #http://127.0.0.1:27627/abcdef/gjkd/dsadas
-   
+          
         
         return HTTPResponse(code, body)
 
