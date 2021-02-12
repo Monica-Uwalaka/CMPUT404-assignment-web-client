@@ -9,6 +9,8 @@ Make a simple web-client like curl or wget
 
 Contributors / Licensing
 ========================
+Monica Uwalaka
+
 Justin Mah
 
 Zijian Xi 
